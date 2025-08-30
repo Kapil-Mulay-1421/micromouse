@@ -122,9 +122,9 @@ void Mouse::scanWalls() {
         }
     }
     // write walls to eeprom if no. of walls in knownWalls_ is at least 10 more than that in eeprom.
-    auto eepromWalls_ = readWallsFromEEPROM();
+    auto eepromWalls_ = readWallsFromFS();
     if (knownWalls_.size() >= eepromWalls_.size() + 5) {
-        writeWallsToEEPROM(knownWalls_);
+        writeWallsToFS(knownWalls_);
     }
     std::cout << "Known walls: " << knownWalls_.size() << std::endl;
 }
@@ -460,7 +460,7 @@ void Mouse::removeLoopsAndMemorize(std::vector<std::pair<int, int>>& moves,
 
     Path newPathObj(positions, moves);
     knownPaths_.push_back(newPathObj);
-    writePathListToEEPROM(knownPaths_);
+    writePathListToFS(knownPaths_);
 }
 
 std::pair<std::vector<std::pair<int, int>>, std::vector<std::pair<int, int>>>

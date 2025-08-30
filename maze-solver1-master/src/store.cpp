@@ -1,12 +1,13 @@
 #include <Arduino.h>
-#include <EEPROM.h>
+#include <LittleFS.h>
 #include <vector>
 #include <set>
 #include "store/store.hpp"
 #include "path/Path.hpp"
 
-constexpr size_t MAX_STEPS = 128;  // adjust depending on your maze size
+constexpr size_t MAX_STEPS = 511;  // adjust depending on your maze size
 
+// ---------------- PathData serialization ----------------
 struct PathData {
     uint16_t length;
     uint16_t turns;
@@ -53,125 +54,113 @@ Path deserializePath(const PathData& data) {
     return Path(positions, moves);
 }
 
+// ---------------- LittleFS helpers ----------------
 
-// Vector to hold input values in RAM
-std::vector<int> values;
+// define filesystem
+LittleFS_Program myfs;   // uses onboard QSPI flash
 
-// EEPROM layout:
-// [0] = number of elements (uint16_t, 2 bytes)
-// [2..] = elements (each int stored as 2 bytes)
-
-void writeVectorToEEPROM(const std::vector<int>& vec) {
-  uint16_t size = vec.size();
-  EEPROM.put(0, size); // store vector size at beginning
-  int addr = 2;
-  for (int v : vec) {
-    EEPROM.put(addr, v);
-    addr += sizeof(int);
-  }
-}
-
-void writeWallsToEEPROM(const std::set<std::pair<std::pair<int, int>, std::pair<int, int>>>& walls) {
-    uint16_t size = walls.size();
-    EEPROM.put(0, size); // store number of walls at beginning
-    int addr = 2;
-    for (const auto& wall : walls) {
-        EEPROM.put(addr, wall.first.first);
-        addr += sizeof(int);
-        EEPROM.put(addr, wall.first.second);
-        addr += sizeof(int);
-        EEPROM.put(addr, wall.second.first);
-        addr += sizeof(int);
-        EEPROM.put(addr, wall.second.second);
-        addr += sizeof(int);
+// save vector<int> to file
+void writeVectorToFS(const std::vector<int>& vec, const char* filename = "/vector.bin") {
+    File f = myfs.open(filename, FILE_WRITE);
+    if (!f) return;
+    uint16_t size = vec.size();
+    f.write((uint8_t*)&size, sizeof(size));
+    for (int v : vec) {
+        f.write((uint8_t*)&v, sizeof(v));
     }
+    f.close();
 }
 
-void writePathListToEEPROM(const std::vector<Path>& paths) {
-    int count = paths.size();
-    int addr = 0;
-
-    // store number of paths
-    EEPROM.put(addr, count);
-    addr += sizeof(int);
-
-    for (int i = 0; i < count; i++) {
-        PathData data = serializePath(paths[i]);
-        EEPROM.put(addr, data);
-        addr += sizeof(PathData);
-    }
-
-    Serial.print("Saved ");
-    Serial.print(count);
-    Serial.println(" paths to EEPROM.");
-}
-
-std::vector<int> readVectorFromEEPROM() {
-  std::vector<int> vec;
-  uint16_t size;
-  EEPROM.get(0, size);
-  int addr = 2;
-  for (uint16_t i = 0; i < size; i++) {
-    int v;
-    EEPROM.get(addr, v);
-    vec.push_back(v);
-    addr += sizeof(int);
-  }
-  return vec;
-}
-
-std::set<std::pair<std::pair<int, int>, std::pair<int, int>>> readWallsFromEEPROM() {
-    std::set<std::pair<std::pair<int, int>, std::pair<int, int>>> walls;
+std::vector<int> readVectorFromFS(const char* filename = "/vector.bin") {
+    std::vector<int> vec;
+    File f = myfs.open(filename, FILE_READ);
+    if (!f) return vec;
     uint16_t size;
-    EEPROM.get(0, size);
-    int addr = 2;
+    f.read((uint8_t*)&size, sizeof(size));
     for (uint16_t i = 0; i < size; i++) {
-        std::pair<std::pair<int, int>, std::pair<int, int>> wall;
-        EEPROM.get(addr, wall.first.first);
-        addr += sizeof(int);
-        EEPROM.get(addr, wall.first.second);
-        addr += sizeof(int);
-        EEPROM.get(addr, wall.second.first);
-        addr += sizeof(int);
-        EEPROM.get(addr, wall.second.second);
-        addr += sizeof(int);
+        int v;
+        f.read((uint8_t*)&v, sizeof(v));
+        vec.push_back(v);
+    }
+    f.close();
+    return vec;
+}
+
+// save set of walls
+void writeWallsToFS(const std::set<std::pair<std::pair<int,int>, std::pair<int,int>>>& walls,
+                    const char* filename = "/walls.bin") {
+    File f = myfs.open(filename, FILE_WRITE);
+    if (!f) return;
+    uint16_t size = walls.size();
+    f.write((uint8_t*)&size, sizeof(size));
+    for (const auto& wall : walls) {
+        f.write((uint8_t*)&wall, sizeof(wall));
+    }
+    f.close();
+}
+
+std::set<std::pair<std::pair<int,int>, std::pair<int,int>>> readWallsFromFS(const char* filename = "/walls.bin") {
+    std::set<std::pair<std::pair<int,int>, std::pair<int,int>>> walls;
+    File f = myfs.open(filename, FILE_READ);
+    if (!f) return walls;
+    uint16_t size;
+    f.read((uint8_t*)&size, sizeof(size));
+    for (uint16_t i = 0; i < size; i++) {
+        std::pair<std::pair<int,int>, std::pair<int,int>> wall;
+        f.read((uint8_t*)&wall, sizeof(wall));
         walls.insert(wall);
     }
+    f.close();
     return walls;
 }
 
-std::vector<Path> readPathListFromEEPROM() {
-    int count = 0;
-    int addr = 0;
-    EEPROM.get(addr, count);
-    addr += sizeof(int);
+// save list of paths
+void writePathListToFS(const std::vector<Path>& paths, const char* filename = "/paths.bin") {
+    File f = myfs.open(filename, FILE_WRITE);
+    if (!f) return;
+    int count = paths.size();
+    f.write((uint8_t*)&count, sizeof(count));
+    for (const auto& path : paths) {
+        PathData data = serializePath(path);
+        f.write((uint8_t*)&data, sizeof(data));
+    }
+    f.close();
 
+    Serial.printf("Saved %d paths to FS.\n", count);
+}
+
+std::vector<Path> readPathListFromFS(const char* filename = "/paths.bin") {
     std::vector<Path> paths;
+    File f = myfs.open(filename, FILE_READ);
+    if (!f) return paths;
+    int count;
+    f.read((uint8_t*)&count, sizeof(count));
     for (int i = 0; i < count; i++) {
         PathData data;
-        EEPROM.get(addr, data);
-        addr += sizeof(PathData);
+        f.read((uint8_t*)&data, sizeof(data));
         paths.push_back(deserializePath(data));
     }
-
+    f.close();
     return paths;
 }
 
-void clearEEPROM() {
-  uint16_t zero = 0;
-  EEPROM.put(0, zero);  // set vector size = 0
-  // (Optional: wipe rest of EEPROM if you want full clear)
-  for (int i = 2; i < EEPROM.length(); i++) {
-    EEPROM.write(i, 0);
-  }
+void clearFS(const char* filename) {
+    myfs.remove(filename);
 }
 
-// void setup() {
-//   Serial.begin(9600);
-//   while (!Serial); // wait for Serial
-//   Serial.println("Teensy Flash Vector Example");
-//   Serial.println("Enter numbers:");
-//   Serial.println(" - Enter 0 to print stored values");
-//   Serial.println(" - Enter -1 to clear flash");
-// }
+// ---------------- Example setup ----------------
+void setup() {
+    Serial.begin(9600);
+    while (!Serial);
 
+    if (!myfs.begin(256 * 1024)) {
+        Serial.println("LittleFS mount failed!");
+        return;
+    }
+
+    Serial.println("LittleFS initialized.");
+}
+
+void loop() {
+    // your logic here
+}

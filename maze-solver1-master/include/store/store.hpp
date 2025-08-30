@@ -11,22 +11,22 @@ extern std::vector<int> values;
 // === EEPROM Helpers ===
 
 // Store vector<int> into EEPROM
-void writeVectorToEEPROM(const std::vector<int>& vec);
+void writeVectorToFS(const std::vector<int>& vec);
 
 // Store set of walls into EEPROM
-void writeWallsToEEPROM(const std::set<std::pair<std::pair<int, int>, std::pair<int, int>>>& walls);
+void writeWallsToFS(const std::set<std::pair<std::pair<int, int>, std::pair<int, int>>>& walls);
 
 // Store known paths to EEPROM
-void writePathListToEEPROM(std::vector<Path>& path);
+void writePathListToFS(std::vector<Path>& path);
 
 // Read vector<int> from EEPROM
-std::vector<int> readVectorFromEEPROM();
+std::vector<int> readVectorFromFS();
 
 // Read walls set from EEPROM
-std::set<std::pair<std::pair<int, int>, std::pair<int, int>>> readWallsFromEEPROM();
+std::set<std::pair<std::pair<int, int>, std::pair<int, int>>> readWallsFromFS();
 
 // Read paths from EEPROM
-std::vector<Path> readPathListFromEEPROM();
+std::vector<Path> readPathListFromFS();
 
 // Clear EEPROM contents
 void clearEEPROM();

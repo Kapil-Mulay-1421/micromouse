@@ -8,6 +8,7 @@
 #include "IMUSensor.h"
 #include <Adafruit_BNO055.h>
 #include <Adafruit_GFX.h>
+#include "store/store.hpp"
 
 IMUSensor g_BNOSensor(Wire);
 Adafruit_SSD1306 g_Display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
@@ -121,8 +122,10 @@ void setup() {
 
     std::pair<int, int> start_point = {0, 0};
     std::pair<int, int> goal = {8, 8};
+    const std::set<std::pair<std::pair<int, int>, std::pair<int, int>>> known_walls = readWallsFromFS();
+    const std::vector<Path> known_paths = readPathListFromFS();
 
-    Mouse mouse(start_point.first, start_point.second, {}, goal, maze, {}, "right_first");
+    Mouse mouse(start_point.first, start_point.second, known_walls, goal, maze, known_paths, "right_first");
     Serial.println("Mouse initialized.");
     
     Serial.print("Using mode: ");
