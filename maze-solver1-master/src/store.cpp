@@ -3,6 +3,56 @@
 #include <vector>
 #include <set>
 #include "store/store.hpp"
+#include "path/Path.hpp"
+
+constexpr size_t MAX_STEPS = 128;  // adjust depending on your maze size
+
+struct PathData {
+    uint16_t length;
+    uint16_t turns;
+    double optimizedLength;
+    int optimizedTurns;
+    double feasibilityScore;
+
+    uint16_t positionsSize;
+    std::pair<int, int> positions[MAX_STEPS];
+
+    uint16_t movesSize;
+    std::pair<int, int> moves[MAX_STEPS];
+};
+
+PathData serializePath(const Path& path) {
+    PathData data{};
+    data.length = path.length;
+    data.turns = path.turns;
+    data.optimizedLength = path.optimizedLength;
+    data.optimizedTurns = path.optimizedTurns;
+    data.feasibilityScore = path.feasibilityScore;
+
+    data.positionsSize = std::min((size_t)MAX_STEPS, path.positions.size());
+    for (size_t i = 0; i < data.positionsSize; i++) {
+        data.positions[i] = path.positions[i];
+    }
+
+    data.movesSize = std::min((size_t)MAX_STEPS, path.moves.size());
+    for (size_t i = 0; i < data.movesSize; i++) {
+        data.moves[i] = path.moves[i];
+    }
+
+    return data;
+}
+
+Path deserializePath(const PathData& data) {
+    std::vector<std::pair<int,int>> positions, moves;
+    for (size_t i = 0; i < data.positionsSize; i++) {
+        positions.push_back(data.positions[i]);
+    }
+    for (size_t i = 0; i < data.movesSize; i++) {
+        moves.push_back(data.moves[i]);
+    }
+    return Path(positions, moves);
+}
+
 
 // Vector to hold input values in RAM
 std::vector<int> values;
@@ -37,6 +87,25 @@ void writeWallsToEEPROM(const std::set<std::pair<std::pair<int, int>, std::pair<
     }
 }
 
+void writePathListToEEPROM(const std::vector<Path>& paths) {
+    int count = paths.size();
+    int addr = 0;
+
+    // store number of paths
+    EEPROM.put(addr, count);
+    addr += sizeof(int);
+
+    for (int i = 0; i < count; i++) {
+        PathData data = serializePath(paths[i]);
+        EEPROM.put(addr, data);
+        addr += sizeof(PathData);
+    }
+
+    Serial.print("Saved ");
+    Serial.print(count);
+    Serial.println(" paths to EEPROM.");
+}
+
 std::vector<int> readVectorFromEEPROM() {
   std::vector<int> vec;
   uint16_t size;
@@ -69,6 +138,23 @@ std::set<std::pair<std::pair<int, int>, std::pair<int, int>>> readWallsFromEEPRO
         walls.insert(wall);
     }
     return walls;
+}
+
+std::vector<Path> readPathListFromEEPROM() {
+    int count = 0;
+    int addr = 0;
+    EEPROM.get(addr, count);
+    addr += sizeof(int);
+
+    std::vector<Path> paths;
+    for (int i = 0; i < count; i++) {
+        PathData data;
+        EEPROM.get(addr, data);
+        addr += sizeof(PathData);
+        paths.push_back(deserializePath(data));
+    }
+
+    return paths;
 }
 
 void clearEEPROM() {

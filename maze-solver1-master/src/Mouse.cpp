@@ -460,6 +460,7 @@ void Mouse::removeLoopsAndMemorize(std::vector<std::pair<int, int>>& moves,
 
     Path newPathObj(positions, moves);
     knownPaths_.push_back(newPathObj);
+    writePathListToEEPROM(knownPaths_);
 }
 
 std::pair<std::vector<std::pair<int, int>>, std::vector<std::pair<int, int>>>
