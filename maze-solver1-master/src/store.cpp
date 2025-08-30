@@ -3,6 +3,7 @@
 #include <vector>
 #include <set>
 #include "store/store.hpp"
+#include "path/Path.hpp"
 
 // Vector to hold input values in RAM
 std::vector<int> values;
@@ -35,6 +36,10 @@ void writeWallsToEEPROM(const std::set<std::pair<std::pair<int, int>, std::pair<
         EEPROM.put(addr, wall.second.second);
         addr += sizeof(int);
     }
+}
+
+void writePathToEEPROM(Path& path) {
+  
 }
 
 std::vector<int> readVectorFromEEPROM() {
