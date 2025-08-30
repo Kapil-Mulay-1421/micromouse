@@ -59,6 +59,14 @@ Path deserializePath(const PathData& data) {
 // define filesystem
 LittleFS_Program myfs;   // uses onboard QSPI flash
 
+void setupFS() {
+    if (!myfs.begin(256 * 1024)) { // 256KB for filesystem
+        Serial.println("LittleFS mount failed!");
+        return;
+    }
+    Serial.println("LittleFS initialized.");
+}
+
 // save vector<int> to file
 void writeVectorToFS(const std::vector<int>& vec, const char* filename = "/vector.bin") {
     File f = myfs.open(filename, FILE_WRITE);
@@ -146,21 +154,4 @@ std::vector<Path> readPathListFromFS(const char* filename = "/paths.bin") {
 
 void clearFS(const char* filename) {
     myfs.remove(filename);
-}
-
-// ---------------- Example setup ----------------
-void setup() {
-    Serial.begin(9600);
-    while (!Serial);
-
-    if (!myfs.begin(256 * 1024)) {
-        Serial.println("LittleFS mount failed!");
-        return;
-    }
-
-    Serial.println("LittleFS initialized.");
-}
-
-void loop() {
-    // your logic here
 }

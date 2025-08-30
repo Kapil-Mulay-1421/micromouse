@@ -1,32 +1,33 @@
 #pragma once
 #include <Arduino.h>
-#include <EEPROM.h>
+#include <LittleFS.h>
 #include <vector>
 #include <set>
 #include "path/Path.hpp"
 
-// Global vector in RAM
-extern std::vector<int> values;
+// ========== Filesystem (LittleFS) Helpers ==========
 
-// === EEPROM Helpers ===
+// Initialize filesystem
+void setupFS();
 
-// Store vector<int> into EEPROM
-void writeVectorToFS(const std::vector<int>& vec);
+// Store vector<int> into filesystem
+void writeVectorToFS(const std::vector<int>& vec, const char* filename = "/vector.bin");
 
-// Store set of walls into EEPROM
-void writeWallsToFS(const std::set<std::pair<std::pair<int, int>, std::pair<int, int>>>& walls);
+// Read vector<int> from filesystem
+std::vector<int> readVectorFromFS(const char* filename = "/vector.bin");
 
-// Store known paths to EEPROM
-void writePathListToFS(std::vector<Path>& path);
+// Store set of walls into filesystem
+void writeWallsToFS(const std::set<std::pair<std::pair<int,int>, std::pair<int,int>>>& walls,
+                    const char* filename = "/walls.bin");
 
-// Read vector<int> from EEPROM
-std::vector<int> readVectorFromFS();
+// Read set of walls from filesystem
+std::set<std::pair<std::pair<int,int>, std::pair<int,int>>> readWallsFromFS(const char* filename = "/walls.bin");
 
-// Read walls set from EEPROM
-std::set<std::pair<std::pair<int, int>, std::pair<int, int>>> readWallsFromFS();
+// Store known paths into filesystem
+void writePathListToFS(const std::vector<Path>& paths, const char* filename = "/paths.bin");
 
-// Read paths from EEPROM
-std::vector<Path> readPathListFromFS();
+// Read paths from filesystem
+std::vector<Path> readPathListFromFS(const char* filename = "/paths.bin");
 
-// Clear EEPROM contents
-void clearEEPROM();
+// Remove a file from filesystem
+void clearFS(const char* filename);

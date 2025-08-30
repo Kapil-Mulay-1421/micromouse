@@ -478,7 +478,8 @@ Mouse::reversePath(std::vector<std::pair<int, int>> moves,
 
 std::shared_ptr<Path> Mouse::getBestPath() const {
     std::shared_ptr<Path> bestPath = nullptr;
-    for (const auto& path : knownPaths_) {
+    auto allPaths = readPathListFromFS();
+    for (const auto& path : allPaths) {
         if (!bestPath || path.feasibilityScore > bestPath->feasibilityScore) {
             bestPath = std::make_shared<Path>(path);
         }

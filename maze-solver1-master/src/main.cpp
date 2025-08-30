@@ -9,6 +9,7 @@
 #include <Adafruit_BNO055.h>
 #include <Adafruit_GFX.h>
 #include "store/store.hpp"
+#include <LittleFS.h>
 
 IMUSensor g_BNOSensor(Wire);
 Adafruit_SSD1306 g_Display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
@@ -111,6 +112,13 @@ void setup() {
 
     
     Serial.println("Starting maze solver");
+
+    while (!Serial);
+
+    // Initialize filesystem
+    setupFS();
+
+    Serial.println("LittleFS initialized.");
 
     // if (!g_BNOSensor.begin()) {
     //     Serial.println("IMU initialization failed. Check wiring or address.");
