@@ -121,8 +121,11 @@ void Mouse::scanWalls() {
             knownWalls_.insert(wall);
         }
     }
-
-    writeWallsToEEPROM(knownWalls_);
+    // write walls to eeprom if no. of walls in knownWalls_ is at least 10 more than that in eeprom.
+    auto eepromWalls_ = readWallsFromEEPROM();
+    if (knownWalls_.size() >= eepromWalls_.size() + 5) {
+        writeWallsToEEPROM(knownWalls_);
+    }
     std::cout << "Known walls: " << knownWalls_.size() << std::endl;
 }
 
